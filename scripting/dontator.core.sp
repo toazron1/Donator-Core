@@ -43,7 +43,7 @@ Flat File Setup:
 /*
 * Uncomment to use a SQL database
 */
-#define USE_SQL
+//#define USE_SQL
 
 #define SQL_CONFIG		"default"
 #define SQL_DBNAME		"donators"
@@ -51,7 +51,7 @@ Flat File Setup:
 #define DONATOR_VERSION "0.8"
 
 #define CHAT_TRIGGER 	"!donators"
-#define DONATOR_FILE	"donators.txt"
+#define DONATOR_FILE	"configs/donators.ini"
 
 new Handle:g_hForward_OnDonatorConnect = INVALID_HANDLE;
 new Handle:g_hForward_OnPostDonatorCheck = INVALID_HANDLE;
@@ -60,10 +60,6 @@ new Handle:g_hForward_OnDonatorsChanged = INVALID_HANDLE;
 new Handle:g_hDonatorTrie = INVALID_HANDLE;
 new Handle:g_hDonatorTagTrie = INVALID_HANDLE;
 new Handle:g_hMenuItems = INVALID_HANDLE;
-
-
-new Handle:g_hCookieTag = INVALID_HANDLE;
-
 
 new bool:g_bIsDonator[MAXPLAYERS + 1];
 new g_iMenuId, g_iMenuCount;
@@ -74,11 +70,12 @@ enum SQLCOLS { steamid, level, tag }; //add cols to expand the sql storage
 new const String:db_cols[SQLCOLS][] = { "steamid", "level", "tag" };
 #else
 new Handle:g_hCookieLevel = INVALID_HANDLE;
+new Handle:g_hCookieTag = INVALID_HANDLE;
 #endif
 
 public Plugin:myinfo = 
 {
-	name = "Basic Donator Interface",
+	name = "Donator Interface",
 	author = "Nut",
 	description = "A core to handle donator related plugins",
 	version = DONATOR_VERSION,
@@ -93,12 +90,13 @@ public OnPluginStart()
 	g_hDonatorTrie = CreateTrie();
 	g_hDonatorTagTrie = CreateTrie();
 	
-	g_hCookieTag = RegClientCookie("donator.core.tag", "Donator tag", CookieAccess_Public);
+	
 	
 	#if defined USE_SQL
 	SQL_OpenConnection();
 	#else
 	g_hCookieLevel = RegClientCookie("donator.core.level", "Donator access level", CookieAccess_Private);
+	g_hCookieTag = RegClientCookie("donator.core.tag", "Donator tag", CookieAccess_Public);
 	LoadDonatorFile();
 	#endif
 	
@@ -127,13 +125,10 @@ public OnClientPostAdminCheck(iClient)
 	GetClientAuthString(iClient, szSteamId, sizeof(szSteamId));
 	
 	g_bIsDonator[iClient] = false;
-	
-	PrintToServer("checking %i", iClient);
-	
+
 	decl iLevel;
 	if (GetTrieValue(g_hDonatorTrie, szSteamId, iLevel))
 	{
-		PrintToServer("%i already found", iClient);
 		g_bIsDonator[iClient] = true;
 		Forward_OnDonatorConnect(iClient);
 	}
@@ -151,10 +146,9 @@ public OnClientPostAdminCheck(iClient)
 		new String:szLevelBuffer[2], String:szBuffer[256];
 		GetClientCookie(iClient, g_hCookieLevel, szLevelBuffer, sizeof(szLevelBuffer));
 		GetClientCookie(iClient, g_hCookieTag, szBuffer, sizeof(szBuffer));
-		PrintToServer("[DEBUG]: checking %s cookies", szSteamId);
+
 		if (strlen(szBuffer) > 1)
 		{
-			PrintToServer("[DEBUG]: cookies for %s found (%s)", szSteamId, szBuffer);
 			SetTrieValue(g_hDonatorTrie, szSteamId, StringToInt(szLevelBuffer));
 			SetTrieString(g_hDonatorTagTrie, szSteamId, szBuffer, true);
 		}
@@ -257,7 +251,7 @@ public Action:cmd_ReloadDonators(client, args)
 	LoadDonatorFile();
 	#endif
 	
-	new iLevel;
+	
 	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientInGame(i)) continue;
@@ -266,13 +260,11 @@ public Action:cmd_ReloadDonators(client, args)
 		
 		GetClientAuthString(i, szAuthId, sizeof(szAuthId));
 
-		PrintToServer("checking %s", szAuthId);
-		
 		#if !defined USE_SQL
+		decl iLevel;
 		if (GetTrieValue(g_hDonatorTrie, szAuthId, iLevel))
 		{
 			GetClientCookie(i, g_hCookieTag, szBuffer, sizeof(szBuffer));
-			PrintToServer("donator found on reload (%s %s)", szAuthId, szBuffer);
 			SetTrieString(g_hDonatorTagTrie, szAuthId, szBuffer, true);
 			g_bIsDonator[i] = true;
 		}
@@ -289,7 +281,7 @@ public LoadDonatorFile()
 {
 	decl String:szBuffer[255];
 
-	BuildPath(Path_SM, szBuffer, sizeof(szBuffer), "data/%s", DONATOR_FILE);
+	BuildPath(Path_SM, szBuffer, sizeof(szBuffer), DONATOR_FILE);
 	new Handle:file = OpenFile(szBuffer, "r");
 	if (file != INVALID_HANDLE)
 	{
@@ -297,16 +289,13 @@ public LoadDonatorFile()
 		ClearTrie(g_hDonatorTagTrie);
 		ClearTrie(g_hDonatorTrie);
 		while (!IsEndOfFile(file) && ReadFileLine(file, szBuffer, sizeof(szBuffer)))
-		{
 			if (szBuffer[0] != ';' && strlen(szBuffer) > 1)
 			{
-				new String:szTemp[2][64];
+				decl String:szTemp[2][64];
 				TrimString(szBuffer);
-				PrintToServer("donator found in file %s", szBuffer);
 				ExplodeString(szBuffer, ";", szTemp, 2, sizeof(szTemp[]));
 				SetTrieValue(g_hDonatorTrie, szTemp[0], StringToInt(szTemp[1]));
 			}
-		}
 		CloseHandle(file);
 	}
 	else
@@ -377,8 +366,6 @@ public T_CheckConnectingUsr(Handle:owner, Handle:hndl, const String:error[], any
 				SetTrieValue(g_hDonatorTrie, szSteamId, iLevel);
 				SetTrieString(g_hDonatorTagTrie, szSteamId, szTag);
 
-				PrintToServer("DONATOR FOUND IN DATABASE: %s - %s", szSteamId, szTag);
-
 				if (IsClientInGame(iClient))
 					g_bIsDonator[iClient] = true;
 			}
@@ -399,7 +386,7 @@ public T_ReloadDonators(Handle:owner, Handle:hndl, const String:error[], any:dat
 			{
 				SQL_FetchString(hndl, 0, szSteamId, sizeof(szSteamId));
 				if (strlen(szSteamId) < 1) continue;
-				PrintToServer("[DEBUG]: reload donators found %s", szSteamId);
+
 				iLevel = SQL_FetchInt(hndl, 1);
 				SQL_FetchString(hndl, 2, szTag, sizeof(szTag));
 				SetTrieValue(g_hDonatorTrie, szSteamId, iLevel);
@@ -524,10 +511,7 @@ public Native_SetDonatorMessage(Handle:plugin, params)
 			SQL_TQuery(g_hDataBase, SQLErrorCheckCallback, szQuery);
 		}
 		#else
-		PrintToServer("new tag = %s", szNewTag);
 		SetClientCookie(GetNativeCell(1), g_hCookieTag, szNewTag);
-		GetClientCookie(GetNativeCell(1), g_hCookieTag, szNewTag, sizeof(szNewTag));
-		PrintToServer("new tag = %s", szNewTag);
 		#endif
 		
 		return true;
