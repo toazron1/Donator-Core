@@ -90,8 +90,6 @@ public OnPluginStart()
 	g_hDonatorTrie = CreateTrie();
 	g_hDonatorTagTrie = CreateTrie();
 	
-	
-	
 	#if defined USE_SQL
 	SQL_OpenConnection();
 	#else
@@ -105,7 +103,7 @@ public OnPluginStart()
 	g_hForward_OnDonatorsChanged = CreateGlobalForward("OnDonatorsChanged", ET_Event);
 
 	g_hMenuItems = CreateArray();
-	
+
 	AddCommandListener(SayCallback, "say");
 	AddCommandListener(SayCallback, "say_team");
 }
@@ -168,7 +166,7 @@ public Action:SayCallback(iClient, const String:command[], argc)
 
 	StripQuotes(szArg);
 	TrimString(szArg);
-	
+
 	if (StrEqual(szArg, CHAT_TRIGGER, false))
 	{
 		ShowDonatorMenu(iClient);
@@ -355,7 +353,6 @@ public T_CheckConnectingUsr(Handle:owner, Handle:hndl, const String:error[], any
 	else 
 	{
 		new String:szTag[265];
-		
 
 		if (SQL_GetRowCount(hndl))
 		{

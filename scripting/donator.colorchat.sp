@@ -69,6 +69,7 @@ public OnAllPluginsLoaded()
 
 public OnPostDonatorCheck(iClient)
 {
+	if (!IsClientInGame(iClient)) return;
 	if (!(g_bIsDonator[iClient] = IsPlayerDonator(iClient))) return;
 	g_iColor[iClient] = cNone;
 
