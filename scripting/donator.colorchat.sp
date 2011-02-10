@@ -170,15 +170,11 @@ public Panel_SetColor(iClient)
 
 public SetColorHandler(Handle:menu, MenuAction:action, param1, param2)
 {
-//	decl String:tmp[32];
-
 	switch (action)
 	{
 		case MenuAction_Select:
 		{
-			//GetMenuItem(menu, param2, tmp, sizeof(tmp));
-			//new iSelected = StringToInt(tmp);
-			new iColor = param2 - 1;
+			new iColor = param2;
 			
 			g_iColor[param1] = iColor;
 			
