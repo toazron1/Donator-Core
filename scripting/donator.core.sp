@@ -30,6 +30,7 @@ Flat File Setup:
 * 		v0.6 - Corrected menu sorting
 * 		v0.7 - FindDonatorBySteamId correction/ optimizations
 * 		v0.8 - Proper tag reloading - reworked connect logic
+* 		v0.9 - Number of entries on donatorreload,
 */
 
 #include <sourcemod>
@@ -43,7 +44,7 @@ Flat File Setup:
 /*
 * Uncomment to use a SQL database
 */
-//#define USE_SQL
+#define USE_SQL
 
 #define SQL_CONFIG		"default"
 #define SQL_DBNAME		"donators"
@@ -249,7 +250,7 @@ public Action:cmd_ReloadDonators(client, args)
 	LoadDonatorFile();
 	#endif
 	
-	
+	new count;
 	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientInGame(i)) continue;
@@ -265,11 +266,12 @@ public Action:cmd_ReloadDonators(client, args)
 			GetClientCookie(i, g_hCookieTag, szBuffer, sizeof(szBuffer));
 			SetTrieString(g_hDonatorTagTrie, szAuthId, szBuffer, true);
 			g_bIsDonator[i] = true;
+			count++;
 		}
 		#endif
 	}
 	
-	ReplyToCommand(client, "[SM] Donator database reloaded.");
+	ReplyToCommand(client, "[SM] Donator database reloaded. Found %i entries.", count);
 	Forward_OnDonatorsChanged();
 	return Plugin_Handled;
 }
